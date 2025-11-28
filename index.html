@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>タイマーアプリ</title>
+    <title>タイマー</title> 
     <style>
         /* CSSの基本設定 */
         body {
             display: flex;
-            flex-direction: column; /* 要素を縦に並べる */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh; /* 画面全体を占める */
+            flex-direction: column; 
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
             font-family: "Arial", sans-serif;
@@ -19,20 +17,33 @@
             padding: 20px;
         }
 
-        /* 全体コンテナ */
+        /* アプリ本体の配置コンテナ */
+        .app-center-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 垂直方向の中央揃え */
+            align-items: center; /* 水平方向の中央揃え */
+            width: 100%;
+        }
+
         .main-content {
             padding: 20px;
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         /* 時分秒の表示エリア */
         .timer-display {
             display: flex;
             gap: 15px;
-            border: 2px solid transparent; /* 動作中の枠線変更用 */
+            border: 2px solid transparent; 
+            transition: border-color 0.3s;
         }
 
         /* 各時間単位のコンテナ (ラベルとパネルをまとめる) */
@@ -58,29 +69,43 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24pt;
+            font-size: 4rem; /* 修正: フォントサイズを大きくする */
             font-weight: bold;
             cursor: pointer;
             background-color: #fff;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, border 0.2s; /* ホバー時のトランジション追加 */
+            line-height: 1; /* 数字が中央に収まるように調整 */
         }
 
-        .panel:hover { background-color: #f9f9f9; }
+        .panel:hover { 
+            background-color: #f9f9f9; 
+            border: 3px solid #0078D7; /* 修正: ホバー時に枠線を太く、青色に強調 */
+        }
         .panel:active { background-color: #e0e0e0; }
-
-        /* テキストボックスエリア */
+        
+        /* 動作中の視覚フィードバック */
+        .timer-display.running {
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+        
+        /* 修正: 通知メッセージ入力欄の改善 (メインコンテンツの外に出す) */
         .notification-setting {
             width: 100%;
-            margin-top: 20px;
+            max-width: 440px; /* タイマー全体の幅に合わせる */
+            margin-top: 30px; /* タイマー本体との間隔を空ける */
+            padding: 15px 0;
             text-align: center;
         }
 
         #notification-text {
-            width: 380px; /* パネルの横幅に合わせる */
+            width: 90%;
+            max-width: 380px; 
             padding: 8px;
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
         }
         
         .instructions {
@@ -93,26 +118,28 @@
 </head>
 <body>
 
-    <div class="main-content">
-        <div class="timer-display" id="container">
-            <div class="time-unit">
-                <div class="unit-label">時</div>
-                <div class="panel" id="hour" data-max="23">00</div>
-            </div>
-            <div class="time-unit">
-                <div class="unit-label">分</div>
-                <div class="panel" id="minute" data-max="59">00</div>
-            </div>
-            <div class="time-unit">
-                <div class="unit-label">秒</div>
-                <div class="panel" id="second" data-max="59">00</div>
+    <div class="app-center-container">
+        <div class="main-content">
+            <div class="timer-display" id="container">
+                <div class="time-unit">
+                    <div class="unit-label">時</div>
+                    <div class="panel" id="hour" data-max="23">00</div>
+                </div>
+                <div class="time-unit">
+                    <div class="unit-label">分</div>
+                    <div class="panel" id="minute" data-max="59">00</div>
+                </div>
+                <div class="time-unit">
+                    <div class="unit-label">秒</div>
+                    <div class="panel" id="second" data-max="59">00</div>
+                </div>
             </div>
         </div>
-
-        <div class="notification-setting">
-            <label for="notification-text">通知メッセージ:</label>
-            <input type="text" id="notification-text" value="タイマーが終了しました！">
-        </div>
+    </div>
+    
+    <div class="notification-setting">
+        <label for="notification-text">通知メッセージ:</label>
+        <input type="text" id="notification-text" value="タイマーが終了しました！">
     </div>
 
     <div class="instructions">
@@ -130,8 +157,9 @@
         
         let timerInterval = null;
         let isRunning = false;
+        
+        const NOTIFICATION_TITLE = "タイマー"; 
 
-        // 起動時に通知許可をリクエスト (ブラウザの仕様によってはユーザー操作後にしか実行されない)
         if (Notification.permission === 'default') {
             Notification.requestPermission();
         }
@@ -172,27 +200,26 @@
             panels.second.textContent = s.toString().padStart(2, '0');
         }
 
-        // --- 制御関数 (Start/Reset) ---
         function startTimer() {
             if (!isRunning) {
-                // 全て0の場合はスタートしない
                 if(parseInt(panels.hour.textContent) === 0 && 
                    parseInt(panels.minute.textContent) === 0 && 
                    parseInt(panels.second.textContent) === 0) return;
 
-                // スタート時にも許可を求める
                 if (Notification.permission === 'default') Notification.requestPermission();
 
                 isRunning = true;
                 timerInterval = setInterval(tick, 1000);
-                container.style.borderColor = "#4CAF50";
+                // 動作中スタイルを適用
+                container.classList.add('running');
             }
         }
 
         function stopTimer() {
             clearInterval(timerInterval);
             isRunning = false;
-            container.style.borderColor = "transparent";
+            // 動作中スタイルを解除
+            container.classList.remove('running');
         }
 
         function resetTimer() {
@@ -202,29 +229,24 @@
 
         // --- 終了時の処理（カスタム通知） ---
         function finishTimer() {
-            // テキストボックスからメッセージを取得
             const customMessage = notificationInput.value.trim() || "タイマーが終了しました！";
-            const title = "タイマーアプリ";
             const options = {
                 body: customMessage,
                 icon: "https://via.placeholder.com/128?text=Timer"
             };
 
             if (Notification.permission === "granted") {
-                new Notification(title, options);
+                new Notification(NOTIFICATION_TITLE, options); 
             } else {
                 alert(`[通知メッセージ] ${customMessage}`);
             }
         }
 
         // --- イベントリスナー登録 ---
-        
-        // ホイールイベントは time-unit や panel にバインド
         document.querySelectorAll('.time-unit').forEach(unit => {
             unit.addEventListener('wheel', handleWheel, { passive: false });
         });
 
-        // クリックとダブルクリックの制御は全パネルにバインド
         Object.values(panels).forEach(panel => {
             panel.addEventListener('click', startTimer);
             panel.addEventListener('dblclick', resetTimer);
