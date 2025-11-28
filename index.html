@@ -9,6 +9,8 @@
             display: flex;
             flex-direction: column; 
             margin: 0;
+            padding: 0; 
+            overflow-y: hidden;
             background-color: #f0fff0;
             font-family: "Arial", sans-serif;
             user-select: none;
@@ -26,7 +28,7 @@
         }
 
         .main-content {
-            padding: 40px; 
+            padding: 60px; /* 修正: パディングをさらに拡大 */
             background-color: #f0fff0;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
@@ -58,7 +60,7 @@
 
         .timer-display {
             display: flex;
-            gap: 25px; 
+            gap: 30px; /* 修正: ギャップを拡大 */
             border: 3px solid transparent; 
         }
 
@@ -76,13 +78,13 @@
         }
 
         .panel {
-            width: 180px; 
-            height: 140px; 
+            width: 220px; /* 修正: パネル幅をさらに拡大 */
+            height: 180px; /* 修正: パネル高さをさらに拡大 */
             border: 3px solid transparent; 
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 6rem; 
+            font-size: 8rem; /* 修正: フォントサイズをさらに拡大 */
             font-weight: bold;
             cursor: pointer;
             background-color: #ffffff;
