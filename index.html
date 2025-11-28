@@ -5,40 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>タイマーアプリ</title>
     <style>
-        /* (前回のCSSと同じなので省略しますが、そのまま貼り付けて使えます) */
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; font-family: "Arial", sans-serif; user-select: none; }
-        .timer-container { display: flex; gap: 15px; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .panel { width: 120px; height: 100px; border: 1px solid #333; display: flex; justify-content: center; align-items: center; font-size: 24pt; font-weight: bold; cursor: pointer; background-color: #fff; transition: background-color 0.2s; }
+        /* CSSの基本設定 */
+        body {
+            display: flex;
+            flex-direction: column; /* 要素を縦に並べる */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* 画面全体を占める */
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: "Arial", sans-serif;
+            user-select: none;
+            padding: 20px;
+        }
+
+        /* 全体コンテナ */
+        .main-content {
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* 時分秒の表示エリア */
+        .timer-display {
+            display: flex;
+            gap: 15px;
+            border: 2px solid transparent; /* 動作中の枠線変更用 */
+        }
+
+        /* 各時間単位のコンテナ (ラベルとパネルをまとめる) */
+        .time-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ラベル */
+        .unit-label {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        /* 各パネルのスタイル */
+        .panel {
+            width: 120px;
+            height: 100px;
+            border: 1px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24pt;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #fff;
+            transition: background-color 0.2s;
+        }
+
         .panel:hover { background-color: #f9f9f9; }
         .panel:active { background-color: #e0e0e0; }
-        .instructions { position: absolute; bottom: 20px; color: #666; font-size: 0.9rem; text-align: center; }
-        
-        /* 通知許可ボタン（必要な場合のみ表示） */
-        #btn-permission {
-            position: absolute;
-            top: 20px;
-            padding: 10px 20px;
-            background-color: #0078D7;
-            color: white;
-            border: none;
+
+        /* テキストボックスエリア */
+        .notification-setting {
+            width: 100%;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #notification-text {
+            width: 380px; /* パネルの横幅に合わせる */
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
             border-radius: 4px;
-            cursor: pointer;
-            display: none; /* 初期は非表示 */
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <button id="btn-permission">⚠️ 通知を許可する</button>
+    <div class="main-content">
+        <div class="timer-display" id="container">
+            <div class="time-unit">
+                <div class="unit-label">時</div>
+                <div class="panel" id="hour" data-max="23">00</div>
+            </div>
+            <div class="time-unit">
+                <div class="unit-label">分</div>
+                <div class="panel" id="minute" data-max="59">00</div>
+            </div>
+            <div class="time-unit">
+                <div class="unit-label">秒</div>
+                <div class="panel" id="second" data-max="59">00</div>
+            </div>
+        </div>
 
-    <div class="timer-container" id="container">
-        <div class="panel" id="hour" data-max="23">00</div>
-        <div class="panel" id="minute" data-max="59">00</div>
-        <div class="panel" id="second" data-max="59">00</div>
+        <div class="notification-setting">
+            <label for="notification-text">通知メッセージ:</label>
+            <input type="text" id="notification-text" value="タイマーが終了しました！">
+        </div>
     </div>
 
     <div class="instructions">
-        ホイール: 設定 / クリック: スタート / ダブルクリック: リセット
+        ホイール: 時間設定 / クリック: スタート / ダブルクリック: リセット
     </div>
 
     <script>
@@ -48,36 +126,21 @@
             second: document.getElementById('second')
         };
         const container = document.getElementById('container');
-        const btnPermission = document.getElementById('btn-permission');
+        const notificationInput = document.getElementById('notification-text');
+        
         let timerInterval = null;
         let isRunning = false;
 
-        // --- 通知許可の確認 ---
-        function checkNotificationPermission() {
-            if (Notification.permission === 'default') {
-                // まだ許可も拒否もされていない場合、ボタンを表示
-                btnPermission.style.display = 'block';
-            } else if (Notification.permission === 'denied') {
-                console.warn('通知が拒否されています。');
-            }
+        // 起動時に通知許可をリクエスト (ブラウザの仕様によってはユーザー操作後にしか実行されない)
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
         }
-
-        btnPermission.addEventListener('click', () => {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    btnPermission.style.display = 'none';
-                    new Notification("設定完了", { body: "通知が許可されました！" });
-                }
-            });
-        });
-
-        // 起動時にチェック
-        checkNotificationPermission();
 
         // --- ホイール操作 ---
         function handleWheel(e) {
             e.preventDefault();
-            const panel = e.target;
+            const panel = e.target.closest('.panel');
+            if (!panel) return;
             const maxVal = parseInt(panel.getAttribute('data-max'));
             let currentVal = parseInt(panel.textContent);
             if (e.deltaY < 0) currentVal++; else currentVal--;
@@ -109,10 +172,14 @@
             panels.second.textContent = s.toString().padStart(2, '0');
         }
 
+        // --- 制御関数 (Start/Reset) ---
         function startTimer() {
             if (!isRunning) {
-                if(parseInt(panels.hour.textContent) === 0 && parseInt(panels.minute.textContent) === 0 && parseInt(panels.second.textContent) === 0) return;
-                
+                // 全て0の場合はスタートしない
+                if(parseInt(panels.hour.textContent) === 0 && 
+                   parseInt(panels.minute.textContent) === 0 && 
+                   parseInt(panels.second.textContent) === 0) return;
+
                 // スタート時にも許可を求める
                 if (Notification.permission === 'default') Notification.requestPermission();
 
@@ -133,27 +200,32 @@
             updateDisplay(0, 0, 0);
         }
 
-        // --- 終了時の処理（トースト通知） ---
+        // --- 終了時の処理（カスタム通知） ---
         function finishTimer() {
+            // テキストボックスからメッセージを取得
+            const customMessage = notificationInput.value.trim() || "タイマーが終了しました！";
             const title = "タイマーアプリ";
             const options = {
-                body: "タイマーが終了しました！",
-                icon: "https://via.placeholder.com/128?text=Timer", // 任意のアイコンURL
-                requireInteraction: true // ユーザーが消すまで表示（対応ブラウザのみ）
+                body: customMessage,
+                icon: "https://via.placeholder.com/128?text=Timer"
             };
 
             if (Notification.permission === "granted") {
-                // トースト通知を表示
                 new Notification(title, options);
             } else {
-                // 通知が出せない場合はアラート
-                alert("タイマーが終了しました！");
+                alert(`[通知メッセージ] ${customMessage}`);
             }
         }
 
-        // イベントリスナー
+        // --- イベントリスナー登録 ---
+        
+        // ホイールイベントは time-unit や panel にバインド
+        document.querySelectorAll('.time-unit').forEach(unit => {
+            unit.addEventListener('wheel', handleWheel, { passive: false });
+        });
+
+        // クリックとダブルクリックの制御は全パネルにバインド
         Object.values(panels).forEach(panel => {
-            panel.addEventListener('wheel', handleWheel, { passive: false });
             panel.addEventListener('click', startTimer);
             panel.addEventListener('dblclick', resetTimer);
         });
