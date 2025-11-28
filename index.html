@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>タイマー</title> 
     <style>
-        /* 修正: ページ全体の背景色を薄い緑色に変更 */
+        /* CSSの基本設定 */
         body {
             display: flex;
             flex-direction: column; 
-            min-height: 100vh;
+            /* 修正: ページ全体の縦幅をコンテンツに合わせ、スクロールバーを抑制 */
             margin: 0;
-            background-color: #f0fff0; /* ページ全体の背景色（薄い緑色） */
+            background-color: #f0fff0; /* 薄い緑色 */
             font-family: "Arial", sans-serif;
             user-select: none;
-            padding: 20px;
+            /* bodyのpaddingを削除し、.app-center-containerに移す */
         }
 
-        /* アプリ本体の配置コンテナ */
+        /* アプリ本体の配置コンテナ (中央配置を実現) */
         .app-center-container {
             flex-grow: 1;
             display: flex;
@@ -25,25 +25,38 @@
             justify-content: center;
             align-items: center;
             width: 100%;
+            /* ページ全体の余白を設定 */
+            padding: 20px 0; 
+            /* 修正: スクロールバーが表示されないように、コンテンツが画面高を超えたら隠す */
+            min-height: 100vh;
         }
 
-        /* 修正: メインコンテンツの背景色も薄い緑色に変更 */
+        /* メインコンテンツ（タイマー本体と時刻表示） */
         .main-content {
-            padding: 30px; /* パディングを増やして大きく見せる */
-            background-color: #f0fff0; /* メインエリアの背景色（ページと同じ薄い緑色） */
+            padding: 40px; /* 修正: パディングを増やして大きく見せる */
+            background-color: #f0fff0; /* 薄い緑色 */
             border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15); /* 影を濃くする */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
-            border: 1px solid #dcdcdc; /* 境界線を追加 */
+            border: 1px solid #dcdcdc;
+            margin-bottom: 20px;
+        }
+
+        /* 修正: 終了予定時刻のスタイル */
+        .expected-finish-time {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4CAF50; 
+            margin-bottom: 20px; 
         }
 
         /* 時分秒の表示エリア */
         .timer-display {
             display: flex;
-            gap: 20px; /* パネル間の隙間を広げる */
-            border: 2px solid transparent; 
+            gap: 25px; /* 修正: パネル間の隙間をさらに広げる */
+            border: 3px solid transparent; 
             transition: border-color 0.3s;
         }
 
@@ -56,7 +69,7 @@
 
         /* ラベル */
         .unit-label {
-            font-size: 1.2rem; /* ラベルを少し大きく */
+            font-size: 1.2rem;
             font-weight: bold;
             margin-bottom: 5px;
             color: #333;
@@ -64,20 +77,19 @@
 
         /* 各パネルのスタイル */
         .panel {
-            width: 150px; /* 修正: パネルの幅を拡大 */
-            height: 120px; /* 修正: パネルの高さを拡大 */
-            /* ホバー時のガタつきを防ぐため、常に太い枠線（透明）を設定 */
+            width: 180px; /* 修正: パネルの幅を拡大 */
+            height: 140px; /* 修正: パネルの高さを拡大 */
             border: 3px solid transparent; 
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 5rem; /* 修正: 数字のフォントサイズをさらに拡大 */
+            font-size: 6rem; /* 修正: 数字のフォントサイズを拡大 */
             font-weight: bold;
             cursor: pointer;
-            background-color: #ffffff; /* パネルの中身は白く保つ */
+            background-color: #ffffff;
             transition: background-color 0.2s, border-color 0.2s;
             line-height: 1; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* パネルにも軽い影 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
         }
 
         .panel:hover { 
@@ -92,11 +104,11 @@
             box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
         }
         
-        /* 修正: 通知メッセージ入力欄（main-contentの外、app-center-container内に配置） */
+        /* 通知メッセージ入力欄（main-contentの外、すぐ下に配置） */
         .notification-setting {
             width: 100%;
-            max-width: 500px; /* タイマーの幅に合わせて調整 */
-            margin-top: 20px; /* タイマー本体との間隔 */
+            max-width: 600px; /* タイマーの幅に合わせて調整 */
+            margin-top: 20px; 
             padding: 10px 0;
             text-align: center;
         }
@@ -124,6 +136,8 @@
 
     <div class="app-center-container">
         <div class="main-content">
+            <div class="expected-finish-time" id="finish-time">--時--分</div> 
+
             <div class="timer-display" id="container">
                 <div class="time-unit">
                     <div class="unit-label">時</div>
@@ -158,7 +172,8 @@
         };
         const container = document.getElementById('container');
         const notificationInput = document.getElementById('notification-text');
-        
+        const finishTimeElement = document.getElementById('finish-time'); // 終了予定時刻の要素
+
         let timerInterval = null;
         let isRunning = false;
         
@@ -168,17 +183,43 @@
             Notification.requestPermission();
         }
 
+        // --- 終了予定時刻の更新 ---
+        function updateFinishTime() {
+            const h = parseInt(panels.hour.textContent);
+            const m = parseInt(panels.minute.textContent);
+            const s = parseInt(panels.second.textContent);
+
+            const totalSeconds = h * 3600 + m * 60 + s;
+            
+            if (totalSeconds === 0 && !isRunning) {
+                finishTimeElement.textContent = '--時--分';
+                return;
+            }
+
+            const now = new Date();
+            const finishTime = new Date(now.getTime() + totalSeconds * 1000);
+
+            const finishHour = finishTime.getHours().toString().padStart(2, '0');
+            const finishMinute = finishTime.getMinutes().toString().padStart(2, '0');
+
+            finishTimeElement.textContent = `${finishHour}時${finishMinute}分`;
+        }
+
+
         // --- ホイール操作 ---
         function handleWheel(e) {
             e.preventDefault();
             const panel = e.target.closest('.panel');
-            if (!panel) return;
+            if (!panel || isRunning) return; // 実行中は変更不可
+
             const maxVal = parseInt(panel.getAttribute('data-max'));
             let currentVal = parseInt(panel.textContent);
             if (e.deltaY < 0) currentVal++; else currentVal--;
             if (currentVal > maxVal) currentVal = 0;
             if (currentVal < 0) currentVal = maxVal;
             panel.textContent = currentVal.toString().padStart(2, '0');
+            
+            updateFinishTime(); // 修正: ホイール操作後、終了予定時刻を更新
         }
 
         // --- タイマーロジック ---
@@ -196,6 +237,8 @@
                 return;
             }
             updateDisplay(h, m, s);
+            
+            // 実行中は終了時刻の計算負荷を避けるため、ここでは更新しない
         }
 
         function updateDisplay(h, m, s) {
@@ -211,6 +254,8 @@
                    parseInt(panels.second.textContent) === 0) return;
 
                 if (Notification.permission === 'default') Notification.requestPermission();
+                
+                updateFinishTime(); // 修正: タイマー開始時にも終了時刻を確定させる
 
                 isRunning = true;
                 timerInterval = setInterval(tick, 1000);
@@ -227,6 +272,7 @@
         function resetTimer() {
             stopTimer();
             updateDisplay(0, 0, 0);
+            updateFinishTime(); // 修正: リセット後、終了予定時刻をリセット表示に
         }
 
         // --- 終了時の処理（カスタム通知） ---
@@ -242,7 +288,12 @@
             } else {
                 alert(`[通知メッセージ] ${customMessage}`);
             }
+            
+            updateFinishTime(); // 終了後、終了予定時刻をリセット表示に
         }
+        
+        // ページ読み込み時に初期表示を更新
+        updateFinishTime(); 
 
         // --- イベントリスナー登録 ---
         document.querySelectorAll('.time-unit').forEach(unit => {
