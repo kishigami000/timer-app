@@ -9,12 +9,10 @@
         body {
             display: flex;
             flex-direction: column; 
-            /* 修正: ページ全体の縦幅をコンテンツに合わせ、スクロールバーを抑制 */
             margin: 0;
-            background-color: #f0fff0; /* 薄い緑色 */
+            background-color: #f0fff0; /* ページ全体の背景色（薄い緑色） */
             font-family: "Arial", sans-serif;
             user-select: none;
-            /* bodyのpaddingを削除し、.app-center-containerに移す */
         }
 
         /* アプリ本体の配置コンテナ (中央配置を実現) */
@@ -25,39 +23,51 @@
             justify-content: center;
             align-items: center;
             width: 100%;
-            /* ページ全体の余白を設定 */
             padding: 20px 0; 
-            /* 修正: スクロールバーが表示されないように、コンテンツが画面高を超えたら隠す */
             min-height: 100vh;
         }
 
         /* メインコンテンツ（タイマー本体と時刻表示） */
         .main-content {
-            padding: 40px; /* 修正: パディングを増やして大きく見せる */
-            background-color: #f0fff0; /* 薄い緑色 */
+            padding: 40px; 
+            background-color: #f0fff0; /* 初期背景色（薄い緑色） */
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
             border: 1px solid #dcdcdc;
-            margin-bottom: 20px;
+            transition: background-color 0.5s ease; /* 背景色変更にアニメーションを追加 */
+        }
+        
+        /* 修正: 動作中の背景色を薄い紫色に変更 */
+        .main-content.running-bg {
+            background-color: #f8f0ff; 
         }
 
         /* 修正: 終了予定時刻のスタイル */
         .expected-finish-time {
-            font-size: 1.5rem;
+            font-size: 1.8rem; /* 大きくする */
             font-weight: bold;
             color: #4CAF50; 
             margin-bottom: 20px; 
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.5s ease;
+        }
+        
+        /* 修正: 実行中の終了予定時刻をハイライト */
+        .expected-finish-time.highlight {
+            background-color: #e8f5e9; 
+            color: #388e3c;
         }
 
         /* 時分秒の表示エリア */
         .timer-display {
             display: flex;
-            gap: 25px; /* 修正: パネル間の隙間をさらに広げる */
+            gap: 25px; 
+            /* 修正: 実行中の緑枠を削除したため、borderは常に透明のまま */
             border: 3px solid transparent; 
-            transition: border-color 0.3s;
         }
 
         /* 各時間単位のコンテナ (ラベルとパネルをまとめる) */
@@ -77,37 +87,34 @@
 
         /* 各パネルのスタイル */
         .panel {
-            width: 180px; /* 修正: パネルの幅を拡大 */
-            height: 140px; /* 修正: パネルの高さを拡大 */
+            width: 180px; 
+            height: 140px; 
+            /* ホバー時のガタつきを防ぐため、常に太い枠線（透明）を設定 */
             border: 3px solid transparent; 
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 6rem; /* 修正: 数字のフォントサイズを拡大 */
+            font-size: 6rem; 
             font-weight: bold;
             cursor: pointer;
             background-color: #ffffff;
-            transition: background-color 0.2s, border-color 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
             line-height: 1; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+            /* 修正: 立体感のあるシャドウを追加 */
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.12);
         }
 
         .panel:hover { 
             background-color: #f5f5f5; 
             border-color: #0078D7; 
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.15); /* ホバー時に影を強調 */
         }
         .panel:active { background-color: #e0e0e0; }
-        
-        /* 動作中の視覚フィードバック */
-        .timer-display.running {
-            border-color: #4CAF50;
-            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
-        }
         
         /* 通知メッセージ入力欄（main-contentの外、すぐ下に配置） */
         .notification-setting {
             width: 100%;
-            max-width: 600px; /* タイマーの幅に合わせて調整 */
+            max-width: 600px; 
             margin-top: 20px; 
             padding: 10px 0;
             text-align: center;
@@ -135,8 +142,8 @@
 <body>
 
     <div class="app-center-container">
-        <div class="main-content">
-            <div class="expected-finish-time" id="finish-time">--時--分</div> 
+        <div class="main-content" id="main-content">
+            <div class="expected-finish-time" id="finish-time">--時--分に通知</div> 
 
             <div class="timer-display" id="container">
                 <div class="time-unit">
@@ -170,9 +177,9 @@
             minute: document.getElementById('minute'),
             second: document.getElementById('second')
         };
-        const container = document.getElementById('container');
+        const mainContent = document.getElementById('main-content'); // メインコンテンツ要素
         const notificationInput = document.getElementById('notification-text');
-        const finishTimeElement = document.getElementById('finish-time'); // 終了予定時刻の要素
+        const finishTimeElement = document.getElementById('finish-time'); 
 
         let timerInterval = null;
         let isRunning = false;
@@ -184,15 +191,16 @@
         }
 
         // --- 終了予定時刻の更新 ---
-        function updateFinishTime() {
+        function updateFinishTime(running = false) {
             const h = parseInt(panels.hour.textContent);
             const m = parseInt(panels.minute.textContent);
             const s = parseInt(panels.second.textContent);
 
             const totalSeconds = h * 3600 + m * 60 + s;
             
-            if (totalSeconds === 0 && !isRunning) {
-                finishTimeElement.textContent = '--時--分';
+            if (totalSeconds === 0 && !running) {
+                finishTimeElement.textContent = '--時--分に通知';
+                finishTimeElement.classList.remove('highlight');
                 return;
             }
 
@@ -202,7 +210,15 @@
             const finishHour = finishTime.getHours().toString().padStart(2, '0');
             const finishMinute = finishTime.getMinutes().toString().padStart(2, '0');
 
-            finishTimeElement.textContent = `${finishHour}時${finishMinute}分`;
+            // 修正: 文言を「に通知」に変更
+            finishTimeElement.textContent = `${finishHour}時${finishMinute}分に通知`; 
+            
+            // 実行中はハイライト
+            if (running) {
+                finishTimeElement.classList.add('highlight');
+            } else {
+                finishTimeElement.classList.remove('highlight');
+            }
         }
 
 
@@ -210,7 +226,7 @@
         function handleWheel(e) {
             e.preventDefault();
             const panel = e.target.closest('.panel');
-            if (!panel || isRunning) return; // 実行中は変更不可
+            if (!panel || isRunning) return; 
 
             const maxVal = parseInt(panel.getAttribute('data-max'));
             let currentVal = parseInt(panel.textContent);
@@ -219,7 +235,7 @@
             if (currentVal < 0) currentVal = maxVal;
             panel.textContent = currentVal.toString().padStart(2, '0');
             
-            updateFinishTime(); // 修正: ホイール操作後、終了予定時刻を更新
+            updateFinishTime(); 
         }
 
         // --- タイマーロジック ---
@@ -237,8 +253,6 @@
                 return;
             }
             updateDisplay(h, m, s);
-            
-            // 実行中は終了時刻の計算負荷を避けるため、ここでは更新しない
         }
 
         function updateDisplay(h, m, s) {
@@ -255,24 +269,24 @@
 
                 if (Notification.permission === 'default') Notification.requestPermission();
                 
-                updateFinishTime(); // 修正: タイマー開始時にも終了時刻を確定させる
+                updateFinishTime(true); // タイマー開始時、ハイライト表示
 
                 isRunning = true;
                 timerInterval = setInterval(tick, 1000);
-                container.classList.add('running');
+                mainContent.classList.add('running-bg'); // 修正: 背景色を薄い紫色に
             }
         }
 
         function stopTimer() {
             clearInterval(timerInterval);
             isRunning = false;
-            container.classList.remove('running');
+            mainContent.classList.remove('running-bg'); // 修正: 背景色を元に戻す
         }
 
         function resetTimer() {
             stopTimer();
             updateDisplay(0, 0, 0);
-            updateFinishTime(); // 修正: リセット後、終了予定時刻をリセット表示に
+            updateFinishTime(); 
         }
 
         // --- 終了時の処理（カスタム通知） ---
@@ -289,7 +303,7 @@
                 alert(`[通知メッセージ] ${customMessage}`);
             }
             
-            updateFinishTime(); // 終了後、終了予定時刻をリセット表示に
+            updateFinishTime(); 
         }
         
         // ページ読み込み時に初期表示を更新
