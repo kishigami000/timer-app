@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイマーアプリ</title>
+    <style>
+        /* (前回のCSSと同じなので省略しますが、そのまま貼り付けて使えます) */
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; font-family: "Arial", sans-serif; user-select: none; }
+        .timer-container { display: flex; gap: 15px; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .panel { width: 120px; height: 100px; border: 1px solid #333; display: flex; justify-content: center; align-items: center; font-size: 24pt; font-weight: bold; cursor: pointer; background-color: #fff; transition: background-color 0.2s; }
+        .panel:hover { background-color: #f9f9f9; }
+        .panel:active { background-color: #e0e0e0; }
+        .instructions { position: absolute; bottom: 20px; color: #666; font-size: 0.9rem; text-align: center; }
+        
+        /* 通知許可ボタン（必要な場合のみ表示） */
+        #btn-permission {
+            position: absolute;
+            top: 20px;
+            padding: 10px 20px;
+            background-color: #0078D7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none; /* 初期は非表示 */
+        }
+    </style>
+</head>
+<body>
+
+    <button id="btn-permission">⚠️ 通知を許可する</button>
+
+    <div class="timer-container" id="container">
+        <div class="panel" id="hour" data-max="23">00</div>
+        <div class="panel" id="minute" data-max="59">00</div>
+        <div class="panel" id="second" data-max="59">00</div>
+    </div>
+
+    <div class="instructions">
+        ホイール: 設定 / クリック: スタート / ダブルクリック: リセット
+    </div>
+
+    <script>
+        const panels = {
+            hour: document.getElementById('hour'),
+            minute: document.getElementById('minute'),
+            second: document.getElementById('second')
+        };
+        const container = document.getElementById('container');
+        const btnPermission = document.getElementById('btn-permission');
+        let timerInterval = null;
+        let isRunning = false;
+
+        // --- 通知許可の確認 ---
+        function checkNotificationPermission() {
+            if (Notification.permission === 'default') {
+                // まだ許可も拒否もされていない場合、ボタンを表示
+                btnPermission.style.display = 'block';
+            } else if (Notification.permission === 'denied') {
+                console.warn('通知が拒否されています。');
+            }
+        }
+
+        btnPermission.addEventListener('click', () => {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    btnPermission.style.display = 'none';
+                    new Notification("設定完了", { body: "通知が許可されました！" });
+                }
+            });
+        });
+
+        // 起動時にチェック
+        checkNotificationPermission();
+
+        // --- ホイール操作 ---
+        function handleWheel(e) {
+            e.preventDefault();
+            const panel = e.target;
+            const maxVal = parseInt(panel.getAttribute('data-max'));
+            let currentVal = parseInt(panel.textContent);
+            if (e.deltaY < 0) currentVal++; else currentVal--;
+            if (currentVal > maxVal) currentVal = 0;
+            if (currentVal < 0) currentVal = maxVal;
+            panel.textContent = currentVal.toString().padStart(2, '0');
+        }
+
+        // --- タイマーロジック ---
+        function tick() {
+            let h = parseInt(panels.hour.textContent);
+            let m = parseInt(panels.minute.textContent);
+            let s = parseInt(panels.second.textContent);
+
+            if (s > 0) s--;
+            else if (m > 0) { s = 59; m--; }
+            else if (h > 0) { s = 59; m = 59; h--; }
+            else {
+                stopTimer();
+                finishTimer();
+                return;
+            }
+            updateDisplay(h, m, s);
+        }
+
+        function updateDisplay(h, m, s) {
+            panels.hour.textContent = h.toString().padStart(2, '0');
+            panels.minute.textContent = m.toString().padStart(2, '0');
+            panels.second.textContent = s.toString().padStart(2, '0');
+        }
+
+        function startTimer() {
+            if (!isRunning) {
+                if(parseInt(panels.hour.textContent) === 0 && parseInt(panels.minute.textContent) === 0 && parseInt(panels.second.textContent) === 0) return;
+                
+                // スタート時にも許可を求める
+                if (Notification.permission === 'default') Notification.requestPermission();
+
+                isRunning = true;
+                timerInterval = setInterval(tick, 1000);
+                container.style.borderColor = "#4CAF50";
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            container.style.borderColor = "transparent";
+        }
+
+        function resetTimer() {
+            stopTimer();
+            updateDisplay(0, 0, 0);
+        }
+
+        // --- 終了時の処理（トースト通知） ---
+        function finishTimer() {
+            const title = "タイマーアプリ";
+            const options = {
+                body: "タイマーが終了しました！",
+                icon: "https://via.placeholder.com/128?text=Timer", // 任意のアイコンURL
+                requireInteraction: true // ユーザーが消すまで表示（対応ブラウザのみ）
+            };
+
+            if (Notification.permission === "granted") {
+                // トースト通知を表示
+                new Notification(title, options);
+            } else {
+                // 通知が出せない場合はアラート
+                alert("タイマーが終了しました！");
+            }
+        }
+
+        // イベントリスナー
+        Object.values(panels).forEach(panel => {
+            panel.addEventListener('wheel', handleWheel, { passive: false });
+            panel.addEventListener('click', startTimer);
+            panel.addEventListener('dblclick', resetTimer);
+        });
+    </script>
+</body>
+</html>
