@@ -5,17 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>タイマー</title> 
     <style>
-        /* CSSの基本設定 */
         body {
             display: flex;
             flex-direction: column; 
             margin: 0;
-            background-color: #f0fff0; /* ページ全体の背景色（薄い緑色） */
+            background-color: #f0fff0;
             font-family: "Arial", sans-serif;
             user-select: none;
         }
 
-        /* アプリ本体の配置コンテナ (中央配置を実現) */
         .app-center-container {
             flex-grow: 1;
             display: flex;
@@ -27,27 +25,24 @@
             min-height: 100vh;
         }
 
-        /* メインコンテンツ（タイマー本体と時刻表示） */
         .main-content {
             padding: 40px; 
-            background-color: #f0fff0; /* 初期背景色（薄い緑色） */
+            background-color: #f0fff0;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
             border: 1px solid #dcdcdc;
-            transition: background-color 0.5s ease; /* 背景色変更にアニメーションを追加 */
+            transition: background-color 0.5s ease;
         }
         
-        /* 修正: 動作中の背景色を薄い紫色に変更 */
         .main-content.running-bg {
             background-color: #f8f0ff; 
         }
 
-        /* 修正: 終了予定時刻のスタイル */
         .expected-finish-time {
-            font-size: 1.8rem; /* 大きくする */
+            font-size: 1.8rem;
             font-weight: bold;
             color: #4CAF50; 
             margin-bottom: 20px; 
@@ -56,28 +51,23 @@
             transition: background-color 0.5s ease;
         }
         
-        /* 修正: 実行中の終了予定時刻をハイライト */
         .expected-finish-time.highlight {
             background-color: #e8f5e9; 
             color: #388e3c;
         }
 
-        /* 時分秒の表示エリア */
         .timer-display {
             display: flex;
             gap: 25px; 
-            /* 修正: 実行中の緑枠を削除したため、borderは常に透明のまま */
             border: 3px solid transparent; 
         }
 
-        /* 各時間単位のコンテナ (ラベルとパネルをまとめる) */
         .time-unit {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* ラベル */
         .unit-label {
             font-size: 1.2rem;
             font-weight: bold;
@@ -85,11 +75,9 @@
             color: #333;
         }
 
-        /* 各パネルのスタイル */
         .panel {
             width: 180px; 
             height: 140px; 
-            /* ホバー時のガタつきを防ぐため、常に太い枠線（透明）を設定 */
             border: 3px solid transparent; 
             display: flex;
             justify-content: center;
@@ -100,18 +88,16 @@
             background-color: #ffffff;
             transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
             line-height: 1; 
-            /* 修正: 立体感のあるシャドウを追加 */
             box-shadow: 0 3px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.12);
         }
 
         .panel:hover { 
             background-color: #f5f5f5; 
             border-color: #0078D7; 
-            box-shadow: 0 5px 10px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.15); /* ホバー時に影を強調 */
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.15);
         }
         .panel:active { background-color: #e0e0e0; }
         
-        /* 通知メッセージ入力欄（main-contentの外、すぐ下に配置） */
         .notification-setting {
             width: 100%;
             max-width: 600px; 
@@ -132,7 +118,7 @@
         }
         
         .instructions {
-            margin-top: 20px;
+            margin-top: 10px; /* 20pxから10pxに変更 */
             color: #666;
             font-size: 0.9rem;
             text-align: center;
@@ -177,7 +163,7 @@
             minute: document.getElementById('minute'),
             second: document.getElementById('second')
         };
-        const mainContent = document.getElementById('main-content'); // メインコンテンツ要素
+        const mainContent = document.getElementById('main-content');
         const notificationInput = document.getElementById('notification-text');
         const finishTimeElement = document.getElementById('finish-time'); 
 
@@ -190,7 +176,6 @@
             Notification.requestPermission();
         }
 
-        // --- 終了予定時刻の更新 ---
         function updateFinishTime(running = false) {
             const h = parseInt(panels.hour.textContent);
             const m = parseInt(panels.minute.textContent);
@@ -210,10 +195,8 @@
             const finishHour = finishTime.getHours().toString().padStart(2, '0');
             const finishMinute = finishTime.getMinutes().toString().padStart(2, '0');
 
-            // 修正: 文言を「に通知」に変更
             finishTimeElement.textContent = `${finishHour}時${finishMinute}分に通知`; 
             
-            // 実行中はハイライト
             if (running) {
                 finishTimeElement.classList.add('highlight');
             } else {
@@ -222,7 +205,6 @@
         }
 
 
-        // --- ホイール操作 ---
         function handleWheel(e) {
             e.preventDefault();
             const panel = e.target.closest('.panel');
@@ -238,7 +220,6 @@
             updateFinishTime(); 
         }
 
-        // --- タイマーロジック ---
         function tick() {
             let h = parseInt(panels.hour.textContent);
             let m = parseInt(panels.minute.textContent);
@@ -269,18 +250,18 @@
 
                 if (Notification.permission === 'default') Notification.requestPermission();
                 
-                updateFinishTime(true); // タイマー開始時、ハイライト表示
+                updateFinishTime(true);
 
                 isRunning = true;
                 timerInterval = setInterval(tick, 1000);
-                mainContent.classList.add('running-bg'); // 修正: 背景色を薄い紫色に
+                mainContent.classList.add('running-bg');
             }
         }
 
         function stopTimer() {
             clearInterval(timerInterval);
             isRunning = false;
-            mainContent.classList.remove('running-bg'); // 修正: 背景色を元に戻す
+            mainContent.classList.remove('running-bg');
         }
 
         function resetTimer() {
@@ -289,7 +270,6 @@
             updateFinishTime(); 
         }
 
-        // --- 終了時の処理（カスタム通知） ---
         function finishTimer() {
             const customMessage = notificationInput.value.trim() || "タイマーが終了しました！";
             const options = {
@@ -306,10 +286,8 @@
             updateFinishTime(); 
         }
         
-        // ページ読み込み時に初期表示を更新
         updateFinishTime(); 
 
-        // --- イベントリスナー登録 ---
         document.querySelectorAll('.time-unit').forEach(unit => {
             unit.addEventListener('wheel', handleWheel, { passive: false });
         });
