@@ -136,7 +136,7 @@
                     <div class="panel" id="minute" data-max="59">00</div>
                 </div>
                 <div class="time-unit">
-                    <div class="panel" id="second" data-max="59">00</div>
+                    <div class="unit-label">秒</div> <div class="panel" id="second" data-max="59">00</div>
                 </div>
             </div>
         </div>
@@ -160,7 +160,7 @@
         let isRunning = false;
         const NOTIFICATION_TITLE = "タイマー"; 
 
-        // ★ 変更点1: Web Worker の初期化
+        // Web Worker の初期化 (timer-worker.js が必要です)
         const timerWorker = new Worker('timer-worker.js');
 
         if (Notification.permission === 'default') {
@@ -208,13 +208,10 @@
         timerWorker.onmessage = function(e) {
             const data = e.data;
             if (data.type === 'update') {
-                // 残り時間を受信し、UIを更新
                 updateDisplay(data.h, data.m, data.s);
-                // 実行中に、終了予定時刻を再計算して表示（スロットリング対策）
                 updateFinishTimeDisplay(true); 
 
             } else if (data.type === 'finished') {
-                // タイマー終了
                 stopTimer();
                 finishTimer();
             }
@@ -253,7 +250,7 @@
                 isRunning = true;
                 mainContent.classList.add('running-bg');
                 
-                // ★ 変更点2: Workerに開始を命令
+                // Workerに開始を命令
                 timerWorker.postMessage({ type: 'start', h: h, m: m, s: s });
             }
         }
@@ -261,7 +258,7 @@
         function stopTimer() {
             isRunning = false;
             mainContent.classList.remove('running-bg');
-            // ★ 変更点3: Workerに停止を命令
+            // Workerに停止を命令
             timerWorker.postMessage({ type: 'stop' });
         }
 
